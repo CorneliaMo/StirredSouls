@@ -1,0 +1,106 @@
+workflows:
+  build-ios-ipa:
+    name: Build and export iOS ipa using manual code signing
+
+    instance_type: mac_mini_m2
+
+    working_directory: stirred_souls_app
+
+    environment:
+      flutter: stable
+      groups:
+        - appstore_credentials
+
+    scripts:
+      - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
+        script: keychain initialize
+
+      - name: Set up provisioning profiles from environment variables
+        script: | 
+            PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
+            mkdir -p "$PROFILES_HOME"
+            PROFILE_PATH="$(mktemp "$PROFILES_HOME"/$(uuidgen).mobileprovision)"
+            echo ${CM_PROVISIONING_PROFILE} | base64 --decode > "$PROFILE_PATH"
+            echo "Saved provisioning profile $PROFILE_PATH"
+
+      #- name: Set up signing certificate
+      #  script: |
+      #      echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+      #      if [ -z ${CM_CERTIFICATE_PASSWORD+x} ]; then
+      #          # when using a certificate that is not password-protected
+      #          keychain add-certificates --certificate /tmp/certificate.p12
+      #      else
+      #          # when using a password-protected certificate
+      #          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
+      #      fi
+
+      - name: Set up signing certificate
+        script: |
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          security import /tmp/certificate.p12 -P "$CM_CERTIFICATE_PASSWORD" -A -T /usr/bin/codesign
+
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+
+      - name: Get Flutter packages
+        script: | 
+          flutter pub get
+
+      #- name: Install pods
+      #  script: | 
+      #    find . -name "Podfile" -execdir pod install \;
+
+      - name: Flutter build
+        script: | 
+          flutter build ios --release --no-codesign
+      
+      - name: Archive IPA
+        script: |
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace \
+                     -scheme Runner \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -archivePath build/Runner.xcarchive \
+                     archive
+
+      - name: Export IPA
+        script: |
+          cd ios
+          cat > exportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>compileBitcode</key>
+          	<false/>
+          	<key>destination</key>
+          	<string>export</string>
+          	<key>method</key>
+          	<string>release-testing</string>
+          	<key>provisioningProfiles</key>
+          	<dict>
+          		<key>BVLUF222S8.v-team.cn</key>
+          		<string>$PROVISION_UUID</string>
+          	</dict>
+          	<key>signingCertificate</key>
+          	<string>Apple Distribution</string>
+          	<key>signingStyle</key>
+          	<string>manual</string>
+          	<key>stripSwiftSymbols</key>
+          	<true/>
+          	<key>teamID</key>
+          	<string>$DEVELOPMENT_TEAM</string>
+          	<key>thinning</key>
+          	<string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+                     -archivePath build/Runner.xcarchive \
+                     -exportOptionsPlist exportOptions.plist \
+                     -exportPath build/IPA
+
+    artifacts:
+      - ios/build/IPA/*.ipa    
