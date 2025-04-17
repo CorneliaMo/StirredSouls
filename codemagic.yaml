@@ -105,10 +105,18 @@ workflows:
 
       - name: Upload IPA
         script: |
-          current_datetime=$(date +'%Y-%m-%d %H:%M:%S')
+          current_datetime=$(date +'%Y-%m-%d-%H-%M-%S')
           cd ios/build/IPA
-          mmv "*.ipa" "#1$current_datetime.ipa"
-          curl -u $WEBDAV_USER:$WEBDAV_PASSWORD -T *.ipa $WEBDAV_PATH
+          # 遍历当前目录下所有的.ipa文件
+          for ipa_file in *.ipa; do
+            # 如果找到了.ipa文件
+            if [ -f "$ipa_file" ]; then
+              # 构造新的文件名
+              new_filename="${ipa_file%.ipa}_$current_datetime.ipa"
+              # 上传文件到WebDAV服务器
+              curl -T "$ipa_file" "$WEBDAV_PATH$new_filename" --user "$WEBDAV_USER:$WEBDAV_PASSWORD"
+            fi
+          done
 
     artifacts:
       - ios/build/IPA/*.ipa    
