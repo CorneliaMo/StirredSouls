@@ -6,6 +6,15 @@ workflows:
 
     working_directory: stirred_souls_app
 
+    triggering:
+      events:
+        - push
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - 'stirred_souls_app/'
+
     environment:
       flutter: stable
       groups:

@@ -41,6 +41,8 @@ class FavoritePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF0DF),
       body: SafeArea(
+        top: false,
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: ListView(

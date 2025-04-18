@@ -9,16 +9,18 @@ class SettingPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF0DF),
       body: SafeArea(
+        top: false,
+        bottom: false,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
               // 头像 + 名字
-              Column(
+              const Column(
                 children: [
                   const CircleAvatar(
                     radius: 60,
-                    backgroundImage: AssetImage('assets/avatar_placeholder.png'), // 替换成你的头像
+                    backgroundImage: AssetImage('images/avatar_placeholder.jpg'), // 替换成你的头像
                   ),
                   const SizedBox(height: 12),
                   const Text(
