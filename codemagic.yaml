@@ -13,6 +13,9 @@ workflows:
         - webdav_config
 
     scripts:
+      - name: send starting notification
+        script: curl http://server.corneliamo.cn:18080/FenN85BKjevjemYdeUP6x5/Codemagic/开始StirredSouls构建
+
       - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
         script: keychain initialize
 
@@ -117,6 +120,9 @@ workflows:
               curl -T "$ipa_file" "$WEBDAV_PATH$new_filename" --user "$WEBDAV_USER:$WEBDAV_PASSWORD"
             fi
           done
+
+      - name: send ending notification
+        script: curl http://server.corneliamo.cn:18080/FenN85BKjevjemYdeUP6x5/Codemagic/StirredSouls构建完成
 
     artifacts:
       - ios/build/IPA/*.ipa    
